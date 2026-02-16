@@ -1,0 +1,75 @@
+// Nodo Function: ESP32 a Telegram (MEJORADO)
+var raw = msg.payload;
+
+try {
+    var data = JSON.parse(raw);
+    var outputText = "";
+    var chatId = global.get("telegramChatId");
+    
+    if (!chatId) return null; 
+
+    // === TRADUCCIÓN DE ESTADOS ===
+    var estadoES = "DESCONOCIDO";
+    var icon = "❓";
+
+    if (data.state === "ALERTA_CRITICA") {
+        estadoES = "PELIGRO: SOBRECALENTAMIENTO";
+        icon = "🔥";
+    } else if (data.state === "ERROR_SENSOR") {
+        estadoES = "FALLO DE SENSOR";
+        icon = "⚠️";
+    } else if (data.state === "APAGADO_MANUAL") {
+        estadoES = "APAGADO POR USUARIO";
+        icon = "🛑";
+    } else if (data.state === "LOCKED_TIMER") {
+        estadoES = "BLOQUEO (FIN TIMER)";
+        icon = "🔒";
+    } else if (data.state === "RUNNING") {
+        estadoES = "EN MARCHA (Temporizador)";
+        icon = "⏳";
+    } else if (data.state === "STANDBY") {
+        estadoES = "EN ESPERA / NORMAL";
+        icon = "✅";
+    }
+
+    // === FORMATO DE TIEMPO (MM:SS) ===
+    var tiempoRestante = "Inactivo";
+    if (data.rem_seconds > 0) {
+        var min = Math.floor(data.rem_seconds / 60);
+        var sec = data.rem_seconds % 60;
+        // Agrega un cero delante si es menor a 10 (ej: 09)
+        var secStr = sec < 10 ? "0" + sec : sec;
+        tiempoRestante = min + ":" + secStr + " min";
+    }
+
+    // === FORMATO DE SPAM ===
+    var spamStatus = data.spam ? "🔔 Activado" : "🔕 Desactivado";
+
+    // === CONSTRUCCIÓN DEL MENSAJE ===
+    
+    if (data.type === "alert_triggered") {
+        outputText = "🚨🔥 ¡ALERTA CRÍTICA! 🔥🚨\n\n";
+        outputText += "¡Temperatura límite superada!\n";
+        outputText += "🌡️ Temp Actual: " + data.temp + " ºC\n";
+        outputText += "⛔ Límite: " + data.alert_threshold + " ºC\n";
+        outputText += "ESTADO: SISTEMA BLOQUEADO AUTOMÁTICAMENTE.";
+    } 
+    else {
+        outputText = "🎛️ **PANEL DE CONTROL**\n\n";
+        outputText += "🌡️ **Temp:** " + data.temp + " ºC  (Obj: " + data.setpoint + ")\n";
+        outputText += "💡 **Lámparas:** " + data.lamps + " de 5 encendidas\n";
+        outputText += "📊 **Estado:** " + estadoES + " " + icon + "\n";
+        outputText += "⏱️ **Cuenta Regresiva:** " + tiempoRestante + "\n";
+        outputText += "📢 **Reporte Auto (Spam):** " + spamStatus + "\n";
+    }
+
+    msg.payload = {
+        chatId: chatId,
+        content: outputText,
+        type: "message"
+    };
+    return msg;
+
+} catch (e) {
+    return null;
+}
