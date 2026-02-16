@@ -1,0 +1,13 @@
+// Obtiene el texto del mensaje
+var msgText = msg.payload.content;
+var chatId = msg.payload.chatId;
+
+// Guardamos el ChatID en el contexto global para saber a quién responder
+// cuando el ESP32 hable por sí solo (spam o alertas)
+global.set("telegramChatId", chatId);
+
+// El ESP32 espera el comando limpio (ej: "estatus", "spam on", "setpoint 105")
+// Node-RED solo actúa de pasarela (passthrough)
+msg.payload = msgText; 
+
+return msg;
